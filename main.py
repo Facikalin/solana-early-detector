@@ -59,6 +59,7 @@ async def listener():
                 print("🔥 YENİ RAYDIUM POOL:", signature)
 
 
+
 # 🔥 BU KISIM EKSİKTİ
 if __name__ == "__main__":
     asyncio.run(listener())
