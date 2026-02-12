@@ -6,7 +6,7 @@ SOLANA_WS = "wss://api.mainnet-beta.solana.com/"
 RAYDIUM_PROGRAM = "675kPX9MHTjS2zt1qrXMVEJwBLBsmLSPL5pdb5dSks1R"
 
 async def listener():
-    print("🚀 ALL stream (Raydium initialize filtreli)\n")
+    print("🚀 ALL stream (Raydium pool detector)\n")
 
     async with websockets.connect(
         SOLANA_WS,
@@ -26,8 +26,8 @@ async def listener():
         }
 
         await ws.send(json.dumps(subscribe_msg))
+        await ws.recv()
 
-        sub_response = await ws.recv()
         print("📡 Subscription OK\n")
 
         while True:
@@ -44,22 +44,25 @@ async def listener():
             if not signature:
                 continue
 
-            print("TX geldi:", signature)
-
-            raydium_seen = False
-            initialize_seen = False
+            raydium_invoke = False
+            initialize_event = False
 
             for log in logs:
-                if RAYDIUM_PROGRAM in log:
-                    raydium_seen = True
+                # Raydium invoke yakala
+                if log.startswith("Program " + RAYDIUM_PROGRAM) and "invoke" in log:
+                    raydium_invoke = True
+
+                # initialize event yakala
                 if "initialize" in log.lower():
-                    initialize_seen = True
+                    initialize_event = True
 
-            if raydium_seen and initialize_seen:
+            if raydium_invoke:
+                print("🟢 Raydium TX:", signature)
+
+            if raydium_invoke and initialize_event:
                 print("🔥 YENİ RAYDIUM POOL:", signature)
+                print("--------------------------------------------------")
 
 
-
-# 🔥 BU KISIM EKSİKTİ
 if __name__ == "__main__":
     asyncio.run(listener())
