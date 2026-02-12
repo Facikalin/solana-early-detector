@@ -1,53 +1,49 @@
-﻿import json
-import websocket
+﻿import asyncio
+import json
+import websockets
 
-SOLANA_WS = "wss://mainnet.helius-rpc.com/?api-key=e9013956-6b23-4c03-bc40-afc0e0454a8f"
+SOLANA_WS = "wss://api.mainnet-beta.solana.com/"
+RAYDIUM_PROGRAM = "675kPX9MHTjS2zt1qrXMVEJwBLBsmLSPL5pdb5dSks1R"
 
-def on_open(ws):
-    print("🚀 Bağlantı açıldı")
+async def listener():
+    print("🚀 Raydium initialize listener başlatıldı\n")
 
-    subscribe_msg = {
-        "jsonrpc": "2.0",
-        "id": 1,
-        "method": "logsSubscribe",
-        "params": [
-            "all",
-            {"commitment": "confirmed"}
-        ]
-    }
+    async with websockets.connect(
+        SOLANA_WS,
+        ping_interval=20,
+        ping_timeout=20,
+        max_size=None
+    ) as ws:
 
-    ws.send(json.dumps(subscribe_msg))
-    print("📡 Subscribe gönderildi")
+        subscribe_msg = {
+            "jsonrpc": "2.0",
+            "id": 1,
+            "method": "logsSubscribe",
+            "params": [
+                {"mentions": [RAYDIUM_PROGRAM]},
+                {"commitment": "confirmed"}
+            ]
+        }
 
-def on_message(ws, message):
-    data = json.loads(message)
+        await ws.send(json.dumps(subscribe_msg))
+        await ws.recv()
 
-    if "result" in data and "id" in data:
-        print("📡 Subscription yanıtı:", data)
-        return
+        while True:
+            message = await ws.recv()
+            data = json.loads(message)
 
-    if "params" in data:
-        value = data["params"]["result"]["value"]
-        signature = value.get("signature")
+            if "params" not in data:
+                continue
 
-        if signature:
-            print("🧾 TX:", signature)
+            value = data["params"]["result"]["value"]
+            logs = value.get("logs", [])
+            signature = value.get("signature")
 
-def on_error(ws, error):
-    print("❌ Hata:", error)
+            for log in logs:
+                if "initialize" in log.lower():
+                    print("🔥 YENİ POOL:", signature)
+                    break
 
-def on_close(ws, close_status_code, close_msg):
-    print("🔌 Bağlantı kapandı")
 
 if __name__ == "__main__":
-    websocket.enableTrace(False)
-
-    ws = websocket.WebSocketApp(
-        SOLANA_WS,
-        on_open=on_open,
-        on_message=on_message,
-        on_error=on_error,
-        on_close=on_close
-    )
-
-    ws.run_forever()
+    asyncio.run(listener())
