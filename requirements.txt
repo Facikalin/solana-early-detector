@@ -1,0 +1,5 @@
+﻿solana
+websockets
+asyncio
+base58
+requests
