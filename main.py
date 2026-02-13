@@ -43,11 +43,15 @@ async def listener():
 
             if not signature:
                 continue
-
+            #print("TX:", signature)
+            
             raydium_invoke = False
             initialize_event = False
 
             for log in logs:
+                if "Program " in log:
+                    print(log)
+
                 # Raydium invoke yakala
                 if log.startswith("Program " + RAYDIUM_PROGRAM) and "invoke" in log:
                     raydium_invoke = True
